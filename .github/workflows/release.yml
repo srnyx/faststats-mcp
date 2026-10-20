@@ -1,0 +1,38 @@
+name: Release
+
+# Push a tag like v0.2.0 (matching "version" in package.json and manifest.json)
+# to build faststats-mcp.mcpb and attach it to a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Check tag matches version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package.json version ${version}"
+            exit 1
+          fi
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run pack
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: faststats-mcp.mcpb
+          generate_release_notes: true

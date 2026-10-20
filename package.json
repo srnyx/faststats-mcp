@@ -1,0 +1,40 @@
+{
+  "name": "faststats-mcp",
+  "version": "0.1.0",
+  "description": "MCP server and Claude Desktop extension for designing and publishing FastStats charts and dashboards",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "author": "srnyx",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:contract": "vitest run --config vitest.contract.config.ts",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "pack": "npm run build && mcpb validate manifest.json && mcpb pack . faststats-mcp.mcpb"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@anthropic-ai/mcpb": "^2.1.2",
+    "@types/node": "^22.20.5",
+    "tsup": "^9.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/srnyx/faststats-mcp.git"
+  },
+  "homepage": "https://github.com/srnyx/faststats-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/srnyx/faststats-mcp/issues"
+  }
+}

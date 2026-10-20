@@ -1,0 +1,21 @@
+# dist/index.js is self-contained, so only it, the manifest, icon and docs are packed.
+node_modules/
+src/
+test/
+docs/
+scripts/
+.github/
+.git/
+.claude/
+*.mcpb
+*.log
+.env
+.gitignore
+.mcpbignore
+CLAUDE.md
+package.json
+package-lock.json
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+vitest.contract.config.ts
