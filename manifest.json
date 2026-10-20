@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "faststats-mcp",
   "display_name": "FastStats",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Design, validate and publish FastStats charts and dashboards with Claude.",
   "long_description": "Lets Claude read your FastStats projects and build charts and dashboards for them. Claude writes charts in a compact spec; the extension checks every field against your project's metrics and dry-runs each chart with FastStats' preview endpoint before saving, so nothing broken is ever published. Deleting anything always needs your explicit confirmation, and a read-only mode hides every tool that writes.",
   "author": {
