@@ -8,8 +8,6 @@ Ask things like *"make a dashboard showing how servers configure my plugin"* and
 - **Your edits are safe.** Updates never overwrite a chart that changed since Claude read it, and deleting needs explicit confirmation.
 - **Read-only mode** hides every tool that writes, if you only want Claude to look.
 
-Written with 100% Claude (crazy)
-
 ## Install
 
 1. Download **[faststats-mcp.mcpb](https://github.com/srnyx/faststats-mcp/releases/latest/download/faststats-mcp.mcpb)** from the latest release.
@@ -108,15 +106,10 @@ To try a local build in Claude Desktop, run `npm run pack` and install the resul
 
 ### Releasing
 
-1. Bump `version` in both `package.json` and `manifest.json` (a test fails if they differ).
-2. Commit, then tag and push:
+1. Bump `version` in both `package.json` and `manifest.json` (a test fails if they differ), and commit.
+2. Publish a GitHub release whose tag is that version, e.g. `0.2.0` (no `v`).
 
-   ```powershell
-   git tag v0.2.0
-   git push origin main --tags
-   ```
-
-GitHub Actions runs the checks, builds `faststats-mcp.mcpb` and attaches it to a new release, so the download link above always points at the latest version.
+GitHub Actions runs the checks, builds `faststats-mcp.mcpb` and attaches it to the release, so the download link above always points at the latest version.
 
 ## License
 

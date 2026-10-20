@@ -15,7 +15,7 @@ A local stdio MCP server (TypeScript, Node 22+, `@modelcontextprotocol/sdk` + zo
 - `docs/FLOW_SCHEMA.md`: reverse-engineered schema notes and what's still unverified.
 - `manifest.json`: MCPB manifest. `user_config` (API key, default project, read-only) maps to the env vars read by `src/config.ts`. Its `version` and `tools` must match `package.json` and the registered tools (`test/manifest.test.ts`).
 - `.mcpbignore`: explicit exclude list (negated patterns don't work). Only `dist/index.js`, the manifest, icon, LICENSE and README are packed.
-- `.github/workflows/`: `ci.yml` checks and packs on push/PR; `release.yml` attaches the `.mcpb` to a release when a `v*` tag matching the version is pushed.
+- `.github/workflows/`: `ci.yml` checks and packs on push/PR; `release.yml` runs on every published GitHub release and attaches the `.mcpb`; the release tag must equal the version (no `v`).
 
 ## Rules
 
