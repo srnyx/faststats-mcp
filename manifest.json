@@ -4,7 +4,7 @@
   "display_name": "FastStats",
   "version": "0.1.0",
   "description": "Design, validate and publish FastStats charts and dashboards with Claude.",
-  "long_description": "Lets Claude read your FastStats projects and build charts and dashboards for them. Claude writes charts in a compact spec; the extension checks every field against your project's metrics and dry-runs each chart with FastStats' preview endpoint before saving, so nothing broken is ever published. Deleting a chart always needs your explicit confirmation, and a read-only mode hides every tool that writes.",
+  "long_description": "Lets Claude read your FastStats projects and build charts and dashboards for them. Claude writes charts in a compact spec; the extension checks every field against your project's metrics and dry-runs each chart with FastStats' preview endpoint before saving, so nothing broken is ever published. Deleting anything always needs your explicit confirmation, and a read-only mode hides every tool that writes.",
   "author": {
     "name": "srnyx",
     "url": "https://github.com/srnyx"
@@ -37,11 +37,30 @@
     { "name": "get_chart", "description": "Get a chart as an editable spec" },
     { "name": "preview_chart", "description": "Validate and dry-run a chart spec without saving" },
     { "name": "list_event_markers", "description": "List marker collections or their markers" },
+    { "name": "list_data_sources", "description": "List custom metrics with coverage and observed json paths" },
+    { "name": "check_project_data", "description": "Check whether a project is receiving data" },
+    { "name": "get_anomalies", "description": "Metric health and detected incidents with likely causes" },
+    { "name": "get_download_analytics", "description": "Downloads per platform and version from linked listings" },
+    { "name": "search_download_providers", "description": "Find a plugin's listing on Modrinth, Spigot, Hangar and others" },
     { "name": "create_chart", "description": "Preview, then save a chart to a dashboard" },
     { "name": "update_chart", "description": "Preview, then update a chart (never overwrites newer edits)" },
     { "name": "delete_chart", "description": "Delete a chart (requires explicit confirmation)" },
     { "name": "create_dashboard", "description": "Create a dashboard, optionally filled with previewed charts" },
-    { "name": "create_event_marker", "description": "Add a marker (e.g. a release) to overlay on time series" }
+    { "name": "create_event_marker", "description": "Add a marker (e.g. a release) to overlay on time series" },
+    { "name": "bulk_create_event_markers", "description": "Add up to 500 markers at once, e.g. every past release" },
+    { "name": "update_event_marker", "description": "Change a marker" },
+    { "name": "delete_event_marker", "description": "Delete a marker (requires explicit confirmation)" },
+    { "name": "update_marker_collection", "description": "Rename or restyle a marker collection" },
+    { "name": "delete_marker_collection", "description": "Delete a marker collection and its markers (requires explicit confirmation)" },
+    { "name": "update_dashboard", "description": "Rename a dashboard or change its visibility" },
+    { "name": "delete_dashboard", "description": "Delete a dashboard (requires explicit confirmation)" },
+    { "name": "duplicate_dashboard", "description": "Copy a dashboard within a project or to another project" },
+    { "name": "reorder_dashboards", "description": "Set the order of dashboards" },
+    { "name": "link_download_provider", "description": "Track downloads from a platform listing" },
+    { "name": "unlink_download_provider", "description": "Stop tracking a platform listing (requires explicit confirmation)" },
+    { "name": "create_data_source", "description": "Register a custom metric" },
+    { "name": "update_data_source", "description": "Change a custom metric (guards referenceId renames used by charts)" },
+    { "name": "delete_data_source", "description": "Delete a custom metric (requires explicit confirmation)" }
   ],
   "tools_generated": false,
   "keywords": ["faststats", "analytics", "charts", "dashboards", "minecraft"],
@@ -68,7 +87,7 @@
     "read_only": {
       "type": "boolean",
       "title": "Read-only mode",
-      "description": "Hide every tool that creates, updates or deletes charts, dashboards or markers.",
+      "description": "Hide every tool that creates, updates or deletes anything.",
       "required": false,
       "default": false
     }

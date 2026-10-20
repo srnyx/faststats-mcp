@@ -2,8 +2,9 @@ import { z } from "zod";
 import type { Config } from "../config";
 import { log } from "../log";
 import {
-  Chart, Dashboard, DataSource, type Flow, MarkerCollection, MarkerEvent, PreviewResponse,
-  ProjectPage, ProjectSummary, type Position, type QueryConfig,
+  AnomalyReport, Chart, Dashboard, type DATA_SOURCE_TYPES, DataSource, DataSourceCoverage, DownloadAnalytics, DownloadProvider,
+  type DOWNLOAD_PROVIDERS, DownloadSearchHit, type Flow, type MARKER_GROUPINGS, type MARKER_VISIBILITIES, MarkerCollection,
+  MarkerEvent, type METRIC_SHAPES, PreviewResponse, ProjectPage, ProjectSummary, type Position, type QueryConfig, StructuredField,
 } from "./types";
 
 export class FastStatsError extends Error {
@@ -38,6 +39,46 @@ export interface CreateChartBody {
 }
 
 export type UpdateChartBody = Partial<CreateChartBody> & { expectedUpdatedAt?: string | null };
+
+export interface CreateDataSourceBody {
+  name: string;
+  referenceId: string;
+  dataType: (typeof DATA_SOURCE_TYPES)[number];
+  metricShape: (typeof METRIC_SHAPES)[number];
+  description?: string | null;
+  regex?: string | null;
+  allowNegative?: boolean | null;
+  allowFloat?: boolean | null;
+  minValue?: number | null;
+  maxValue?: number | null;
+}
+
+/** FastStats requires metricShape on every PATCH. */
+export type UpdateDataSourceBody = Partial<CreateDataSourceBody> & Pick<CreateDataSourceBody, "metricShape">;
+
+export interface MarkerBody {
+  /** ISO 8601, Unix seconds, or Unix milliseconds. */
+  timestamp: string | number;
+  title: string;
+  description?: string | null;
+  icon?: string | null;
+  emoji?: string | null;
+  color?: string | null;
+  /** Stable id: creating a marker with an existing externalId updates it instead. */
+  externalId?: string | null;
+}
+
+export interface MarkerCollectionPatch {
+  name?: string;
+  description?: string | null;
+  defaultIcon?: string | null;
+  defaultEmoji?: string | null;
+  defaultColor?: string | null;
+  grouping?: (typeof MARKER_GROUPINGS)[number] | null;
+  visibility?: (typeof MARKER_VISIBILITIES)[number] | null;
+}
+
+type DownloadProviderName = (typeof DOWNLOAD_PROVIDERS)[number];
 
 export interface PreviewBody {
   chartType: string;
@@ -140,6 +181,29 @@ export class FastStatsClient {
     return this.request("GET", `${this.p(project)}/data-sources`, { schema: z.array(DataSource) });
   }
 
+  getDataSourceCoverage(project: string) {
+    return this.request("GET", `${this.p(project)}/data-sources/coverage`, { schema: DataSourceCoverage });
+  }
+
+  async getStructuredFields(project: string): Promise<StructuredField[]> {
+    const res = await this.request("GET", `${this.p(project)}/data-sources/structured-fields`, {
+      schema: z.looseObject({ fields: z.array(StructuredField) }),
+    });
+    return res.fields;
+  }
+
+  createDataSource(project: string, body: CreateDataSourceBody) {
+    return this.request("POST", `${this.p(project)}/data-sources`, { body, schema: DataSource });
+  }
+
+  updateDataSource(project: string, dataSourceId: string, body: UpdateDataSourceBody) {
+    return this.request("PATCH", `${this.p(project)}/data-sources/${encodeURIComponent(dataSourceId)}`, { body, schema: DataSource });
+  }
+
+  deleteDataSource(project: string, dataSourceId: string) {
+    return this.request<void>("DELETE", `${this.p(project)}/data-sources/${encodeURIComponent(dataSourceId)}`);
+  }
+
   // ---------- dashboards ----------
 
   listDashboards(project: string) {
@@ -151,7 +215,26 @@ export class FastStatsClient {
   }
 
   updateDashboard(project: string, dashboardId: string, body: { name?: string; description?: string | null; isPublic?: boolean }) {
-    return this.request<unknown>("PATCH", `${this.p(project)}/dashboards/${encodeURIComponent(dashboardId)}`, { body });
+    return this.request("PATCH", `${this.p(project)}/dashboards/${encodeURIComponent(dashboardId)}`, { body, schema: Dashboard });
+  }
+
+  deleteDashboard(project: string, dashboardId: string) {
+    return this.request<void>("DELETE", `${this.p(project)}/dashboards/${encodeURIComponent(dashboardId)}`);
+  }
+
+  duplicateDashboard(project: string, dashboardId: string) {
+    return this.request("POST", `${this.p(project)}/dashboards/${encodeURIComponent(dashboardId)}/duplicate`, { schema: Dashboard });
+  }
+
+  copyDashboard(project: string, dashboardId: string, targetProjectId: string) {
+    return this.request("POST", `${this.p(project)}/dashboards/${encodeURIComponent(dashboardId)}/copy`, {
+      body: { targetProjectId },
+      schema: Dashboard,
+    });
+  }
+
+  reorderDashboards(project: string, dashboards: Array<{ id: string; position: number }>) {
+    return this.request<void>("PUT", `${this.p(project)}/dashboards/order`, { body: { dashboards } });
   }
 
   // ---------- charts ----------
@@ -192,6 +275,14 @@ export class FastStatsClient {
     return this.request("POST", `${this.p(project)}/event-marker-collections`, { body, schema: MarkerCollection });
   }
 
+  updateMarkerCollection(project: string, collectionId: string, body: MarkerCollectionPatch) {
+    return this.request("PATCH", `${this.p(project)}/event-marker-collections/${encodeURIComponent(collectionId)}`, { body, schema: MarkerCollection });
+  }
+
+  deleteMarkerCollection(project: string, collectionId: string) {
+    return this.request<void>("DELETE", `${this.p(project)}/event-marker-collections/${encodeURIComponent(collectionId)}`);
+  }
+
   listMarkers(project: string, collectionId: string, opts: { from?: string; to?: string; limit?: number } = {}) {
     return this.request("GET", `${this.p(project)}/event-marker-collections/${encodeURIComponent(collectionId)}/events`, {
       query: opts,
@@ -199,15 +290,68 @@ export class FastStatsClient {
     });
   }
 
-  createMarker(
-    project: string,
-    collectionId: string,
-    body: { timestamp: string; title: string; description?: string; emoji?: string; color?: string },
-  ) {
+  createMarker(project: string, collectionId: string, body: MarkerBody) {
     return this.request("POST", `${this.p(project)}/event-marker-collections/${encodeURIComponent(collectionId)}/events`, {
       body,
       schema: MarkerEvent,
     });
+  }
+
+  bulkCreateMarkers(project: string, collectionId: string, events: MarkerBody[]) {
+    return this.request("POST", `${this.p(project)}/event-marker-collections/${encodeURIComponent(collectionId)}/events/bulk`, {
+      body: { events },
+      schema: z.array(MarkerEvent),
+    });
+  }
+
+  updateMarker(project: string, collectionId: string, eventId: string, body: Partial<MarkerBody>) {
+    return this.request(
+      "PATCH",
+      `${this.p(project)}/event-marker-collections/${encodeURIComponent(collectionId)}/events/${encodeURIComponent(eventId)}`,
+      { body, schema: MarkerEvent },
+    );
+  }
+
+  deleteMarker(project: string, collectionId: string, eventId: string) {
+    return this.request<void>(
+      "DELETE",
+      `${this.p(project)}/event-marker-collections/${encodeURIComponent(collectionId)}/events/${encodeURIComponent(eventId)}`,
+    );
+  }
+
+  // ---------- health ----------
+
+  async checkProjectData(project: string): Promise<boolean> {
+    return this.request("GET", `${this.p(project)}/check-data`, { schema: z.boolean() });
+  }
+
+  getAnomalies(project: string, opts: { grain?: "hour" | "day"; at?: string } = {}) {
+    return this.request("GET", `${this.p(project)}/anomalies`, { query: opts, schema: AnomalyReport });
+  }
+
+  // ---------- downloads ----------
+
+  getDownloadAnalytics(
+    project: string,
+    opts: { dateFrom?: string; dateTo?: string; provider?: DownloadProviderName; versionNumber?: string; granularity?: "day" | "30min" } = {},
+  ) {
+    return this.request("GET", `${this.p(project)}/downloads`, { query: opts, schema: DownloadAnalytics });
+  }
+
+  listDownloadProviders(project: string) {
+    return this.request("GET", `${this.p(project)}/download-providers`, { schema: z.array(DownloadProvider) });
+  }
+
+  searchDownloadProviders(project: string, provider: DownloadProviderName, query: string) {
+    return this.request("GET", `${this.p(project)}/download-providers/search`, { query: { provider, query }, schema: z.array(DownloadSearchHit) });
+  }
+
+  createDownloadProvider(project: string, body: { provider: DownloadProviderName; externalId: string }) {
+    return this.request("POST", `${this.p(project)}/download-providers`, { body, schema: DownloadProvider });
+  }
+
+  deleteDownloadProvider(project: string, providerId: string) {
+    return this.request<void>("DELETE", `${this.p(project)}/download-providers/${encodeURIComponent(providerId)}`);
   }
 }
 

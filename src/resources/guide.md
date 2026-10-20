@@ -66,7 +66,7 @@ Inputs are named A, B, C… in order. Allowed operators are `+ - * /` and parent
 - Custom metrics are reported per server. To show how many servers use each value, use `datasource` set to the metric, `groupBy` set to the same metric, then `aggregate: count`.
 - Array metrics: each element counts separately under `groupBy`.
 - Map metrics (shape `map`): use `groupBy` on the metric with `display.splitPattern` (`{key}`, `{value}`), or filter by key with `mapTarget: "key"`. Dot paths do not work on map metrics.
-- JSON metrics (type `json`, e.g. a whole config object): address nested keys with a dot path, e.g. `datasource(internal:server_count) → groupBy(storage.cache.enabled) → aggregate(count)`. Dot paths also work in `filter.field`. Servers that don't report the key come back as an empty `""` group; relabel it with `{ "transform": "replaceRegex", "pattern": "^$", "replacement": "Not reported" }`.
+- JSON metrics (type `json`, e.g. a whole config object): address nested keys with a dot path, e.g. `datasource(internal:server_count) → groupBy(storage.cache.enabled) → aggregate(count)`. Dot paths also work in `filter.field`. `list_data_sources` with `structuredFields: true` lists the paths actually observed. Servers that don't report the key come back as an empty `""` group; relabel it with `{ "transform": "replaceRegex", "pattern": "^$", "replacement": "Not reported" }`.
 - `map` charts need `groupBy: internal:country`.
 - `list` charts with several outputs show one tab per output.
 - The dashboard grid is 12 columns wide. Default sizes: widget 3×2, line/area 12×3, list/pie 4×4, bar 6×4, map 8×4.
@@ -76,7 +76,8 @@ Inputs are named A, B, C… in order. Allowed operators are `+ - * /` and parent
 - Lead with 3–4 `widget` KPIs across the top row (w 3 each).
 - Pick charts by question: share → pie/donut or list, trend → area/line with `timeGroup`, ranking → horizontal bar, `limit` 10 with `groupOthers`.
 - Use `visual.valueFormat` for units, and `thresholds` to mark goals.
-- Overlay release markers on time series with `markerCollections` (see `list_event_markers`).
+- Overlay release markers on time series with `markerCollections` (see `list_event_markers`). To backfill past releases, use `bulk_create_event_markers` with the version as `externalId` (versions are listed by `get_download_analytics` when a platform is linked).
+- Check `list_data_sources` with `coverage: true` before charting a metric: one with few events gives a misleading breakdown, and `unregistered` lists keys being sent that need `create_data_source` first.
 
 ## Recipes
 

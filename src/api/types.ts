@@ -131,6 +131,12 @@ export const ProjectPage = z.looseObject({
   hasMore: z.boolean(),
 });
 
+export const DATA_SOURCE_TYPES = ["number", "string", "boolean", "json"] as const;
+export const METRIC_SHAPES = ["scalar", "array", "map"] as const;
+
+// FastStats encodes non-finite numbers as the strings "Infinity", "-Infinity" and "NaN".
+const num = z.union([z.number(), z.string()]);
+
 export const DataSource = z.looseObject({
   id: z.string(),
   name: z.string(),
@@ -139,8 +145,35 @@ export const DataSource = z.looseObject({
   dataType: z.string(),
   metricShape: z.string().nullish(),
   isArray: z.boolean().nullish(),
+  regex: z.string().nullish(),
+  allowNegative: z.boolean().nullish(),
+  allowFloat: z.boolean().nullish(),
+  minValue: num.nullish(),
+  maxValue: num.nullish(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 export type DataSource = z.infer<typeof DataSource>;
+
+export const DataSourceCoverage = z.looseObject({
+  fromTime: num,
+  toTime: num,
+  totalEvents: num,
+  sources: z.array(z.looseObject({ referenceId: z.string(), eventCount: num, percentage: num })),
+});
+export type DataSourceCoverage = z.infer<typeof DataSourceCoverage>;
+
+export const StructuredField = z.looseObject({
+  sourceReferenceId: z.string(),
+  path: z.array(z.string()),
+  dataType: z.string(),
+  observedTypes: z.array(z.string()).optional(),
+  observedCount: num.optional(),
+  firstSeenAt: z.string().nullish(),
+  lastSeenAt: z.string().nullish(),
+  sampleValue: z.string().nullish(),
+});
+export type StructuredField = z.infer<typeof StructuredField>;
 
 export const Dashboard = z.looseObject({
   id: z.string(),
@@ -208,7 +241,55 @@ export const MarkerEvent = z.looseObject({
   timestamp: z.string(),
   title: z.string(),
   description: z.string().nullish(),
+  icon: z.string().nullish(),
   emoji: z.string().nullish(),
   color: z.string().nullish(),
+  externalId: z.string().nullish(),
+  metadata: z.record(z.string(), z.unknown()).nullish(),
 });
 export type MarkerEvent = z.infer<typeof MarkerEvent>;
+
+export const MARKER_GROUPINGS = ["auto", "minute", "hour", "day", "week", "chart_bucket"] as const;
+export const MARKER_VISIBILITIES = ["private", "project", "public"] as const;
+
+export const AnomalyReport = z.looseObject({
+  grain: z.string(),
+  from: num,
+  to: num,
+  health: z.array(z.looseObject({ metric: z.string(), label: z.string(), status: z.string() })),
+  incidents: z.array(z.looseObject({ id: z.string(), kind: z.string(), severity: z.string(), title: z.string() })),
+});
+export type AnomalyReport = z.infer<typeof AnomalyReport>;
+
+export const DOWNLOAD_PROVIDERS = ["modrinth", "spigot", "hangar", "ore", "curseforge", "github"] as const;
+
+export const DownloadProvider = z.looseObject({
+  id: z.string(),
+  provider: z.string(),
+  externalId: z.string(),
+  title: z.string(),
+  slug: z.string().nullish(),
+  url: z.string().nullish(),
+  totalDownloads: num.optional(),
+  lastSyncedAt: z.string().nullish(),
+});
+export type DownloadProvider = z.infer<typeof DownloadProvider>;
+
+export const DownloadSearchHit = z.looseObject({
+  provider: z.string(),
+  externalId: z.string(),
+  title: z.string(),
+  slug: z.string().nullish(),
+  url: z.string().nullish(),
+  summary: z.string().nullish(),
+  totalDownloads: num.optional(),
+});
+
+export const DownloadAnalytics = z.looseObject({
+  overview: z.looseObject({ totalDownloads: num }),
+  history: z.array(z.looseObject({ bucket: z.string(), downloads: num, gained: num.optional(), provider: z.string().nullish() })),
+  providerBreakdown: z.array(z.looseObject({})).optional(),
+  providerSummaries: z.array(z.looseObject({ provider: z.string(), downloads: num })),
+  versions: z.array(z.looseObject({ provider: z.string(), versionNumber: z.string(), downloads: num, releaseDate: z.string().nullish() })),
+});
+export type DownloadAnalytics = z.infer<typeof DownloadAnalytics>;

@@ -5,7 +5,7 @@ A [Claude Desktop](https://claude.ai/download) extension (MCP server) that lets 
 Ask things like *"make a dashboard showing how servers configure my plugin"* and Claude will read your project's metrics, design the charts, test each one against your real data, and save them.
 
 - **Nothing broken gets saved.** Every chart is checked against your project's fields and dry-run with FastStats' preview endpoint before it is created or updated.
-- **Your edits are safe.** Updates never overwrite a chart that changed since Claude read it, and deleting needs explicit confirmation.
+- **Your edits are safe.** Updates never overwrite a chart that changed since Claude read it, and deleting anything needs explicit confirmation.
 - **Read-only mode** hides every tool that writes, if you only want Claude to look.
 
 ## Install
@@ -36,11 +36,28 @@ Change them any time under **Settings → Extensions → FastStats**.
 | `get_chart` | | A chart as an editable spec |
 | `preview_chart` | | Validates and dry-runs a spec, returns a data sample |
 | `list_event_markers` | | Marker collections or their markers |
+| `list_data_sources` | | Custom metrics, optionally with event coverage and observed json paths |
+| `check_project_data` | | Whether the project is receiving data |
+| `get_anomalies` | | Metric health and incidents (spikes, shifts, gaps) with likely causes |
+| `get_download_analytics` | | Downloads per platform and version, plus linked listings |
+| `search_download_providers` | | Find a listing on Modrinth, Spigot, Hangar, Ore, CurseForge or GitHub |
 | `create_chart` | ✔ | Previews first. Auto-placed on a 12-column grid. |
 | `update_chart` | ✔ | Previews first. Never overwrites newer edits made in the FastStats UI. |
 | `delete_chart` | ✔ | Requires explicit confirmation |
 | `create_dashboard` | ✔ | Optionally with charts. All are previewed before anything is created. |
 | `create_event_marker` | ✔ | e.g. releases to overlay on time series |
+| `bulk_create_event_markers` | ✔ | Up to 500 at once; `externalId` makes re-runs update instead of duplicate |
+| `update_event_marker` / `update_marker_collection` | ✔ | |
+| `delete_event_marker` / `delete_marker_collection` | ✔ | Require explicit confirmation |
+| `update_dashboard` | ✔ | Name, description, public/private |
+| `delete_dashboard` | ✔ | Requires explicit confirmation |
+| `duplicate_dashboard` | ✔ | Within the project or into another one |
+| `reorder_dashboards` | ✔ | |
+| `link_download_provider` | ✔ | Start tracking downloads from a listing |
+| `unlink_download_provider` | ✔ | Requires explicit confirmation |
+| `create_data_source` | ✔ | Registers a custom metric |
+| `update_data_source` | ✔ | Refuses to rename a referenceId that charts use unless forced |
+| `delete_data_source` | ✔ | Requires explicit confirmation; refuses while charts use it unless forced |
 
 ## How charts are described
 
