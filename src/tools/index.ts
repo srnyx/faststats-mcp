@@ -1,18 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { FastStatsError } from "../api/client";
 import { type Dashboard, DATA_SOURCE_TYPES, DOWNLOAD_PROVIDERS, MARKER_GROUPINGS, MARKER_VISIBILITIES, METRIC_SHAPES, Position } from "../api/types";
 import { decompileChart } from "../flow/decompile";
 import { ChartSpec, Size } from "../flow/spec";
 import guide from "../resources/guide.md";
-import { log } from "../log";
 import { type FastStatsService, UserError } from "../service";
-
-const projectArg = z
-  .string()
-  .optional()
-  .describe("Project slug or id. Optional when FASTSTATS_DEFAULT_PROJECT is set.");
+import { registerErrorTools } from "./errors";
+import { defined, fail, guard, iso, ok, projectArg, RO } from "./util";
 
 /** Optional data source fields shared by create and update; null clears a value. */
 const DataSourceFields = {
@@ -38,10 +32,6 @@ const MarkerFields = {
 const partialShape = <S extends Record<string, z.ZodType>>(shape: S) =>
   Object.fromEntries(Object.entries(shape).map(([k, v]) => [k, v.optional()])) as { [K in keyof S]: z.ZodOptional<S[K]> };
 
-/** Drops undefined values so PATCH bodies only carry what the caller set. */
-const defined = <T extends Record<string, unknown>>(o: T) =>
-  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
-
 /** Strips per-bucket chart arrays from anomaly results; they are large and not useful in text. */
 const withoutSeries = (v: unknown): unknown => {
   if (Array.isArray(v)) return v.map(withoutSeries);
@@ -49,36 +39,7 @@ const withoutSeries = (v: unknown): unknown => {
   return v;
 };
 
-/** FastStats times are Unix seconds or milliseconds (below 1e12 means seconds). */
-const iso = (t: number | string) => {
-  const n = Number(t);
-  return Number.isFinite(n) ? new Date(n < 1e12 ? n * 1000 : n).toISOString() : t;
-};
-
-const ok = (value: unknown): CallToolResult => ({
-  content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }],
-});
-
-const fail = (message: string, extra?: Record<string, unknown>): CallToolResult => ({
-  isError: true,
-  content: [{ type: "text", text: JSON.stringify({ error: message, ...extra }, null, 2) }],
-});
-
-/** Converts thrown errors into tool errors Claude can act on. */
-const guard =
-  <A>(name: string, fn: (args: A) => Promise<CallToolResult>) =>
-  async (args: A): Promise<CallToolResult> => {
-    try {
-      return await fn(args);
-    } catch (err) {
-      if (err instanceof UserError || err instanceof FastStatsError) return fail(err.message);
-      log.error(`${name} crashed`, (err as Error).stack ?? String(err));
-      return fail(`Unexpected error in ${name}: ${(err as Error).message}`);
-    }
-  };
-
 export function registerTools(server: McpServer, svc: FastStatsService, opts: { readOnly: boolean }) {
-  const RO = { readOnlyHint: true, openWorldHint: true } as const;
 
   // ---------------- read ----------------
 
@@ -346,6 +307,8 @@ export function registerTools(server: McpServer, svc: FastStatsService, opts: { 
       return ok(await svc.api.searchDownloadProviders(p.id, provider, query));
     }),
   );
+
+  registerErrorTools(server, svc, opts);
 
   if (opts.readOnly) return;
 

@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { FastStatsClient } from "./api/client";
 import { loadConfig } from "./config";
 import { log } from "./log";
+import { withPortableToolSchemas } from "./schema";
 import guide from "./resources/guide.md";
 import { FastStatsService } from "./service";
 import { registerTools } from "./tools/index";
@@ -29,7 +30,7 @@ async function main() {
     async (uri) => ({ contents: [{ uri: uri.href, mimeType: "text/markdown", text: guide }] }),
   );
 
-  await server.connect(new StdioServerTransport());
+  await server.connect(withPortableToolSchemas(new StdioServerTransport()));
   log.info(`ready (v${VERSION}${config.readOnly ? ", read-only" : ""}${config.defaultProject ? `, default project ${config.defaultProject}` : ""})`);
 }
 

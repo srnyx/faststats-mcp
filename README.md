@@ -41,6 +41,9 @@ Change them any time under **Settings → Extensions → FastStats**.
 | `get_anomalies` | | Metric health and incidents (spikes, shifts, gaps) with likely causes |
 | `get_download_analytics` | | Downloads per platform and version, plus linked listings |
 | `search_download_providers` | | Find a listing on Modrinth, Spigot, Hangar, Ore, CurseForge or GitHub |
+| `list_errors` | | Error issues for one, several or all projects; `newSince` returns only new and regressed ones |
+| `get_error` | | One error in full: stack, timeline, latest occurrences with environment |
+| `get_error_filter_options` | | Filter fields/values and labels for `list_errors` |
 | `create_chart` | ✔ | Previews first. Auto-placed on a 12-column grid. |
 | `update_chart` | ✔ | Previews first. Never overwrites newer edits made in the FastStats UI. |
 | `delete_chart` | ✔ | Requires explicit confirmation |
@@ -55,9 +58,21 @@ Change them any time under **Settings → Extensions → FastStats**.
 | `reorder_dashboards` | ✔ | |
 | `link_download_provider` | ✔ | Start tracking downloads from a listing |
 | `unlink_download_provider` | ✔ | Requires explicit confirmation |
+| `update_error` | ✔ | Priority, assignee, labels |
+| `resolve_errors` / `reopen_errors` | ✔ | Resolve once, per version, or forever |
+| `mark_errors_viewed` | ✔ | e.g. after a digest, so `unviewedOnly` skips them next time |
+| `merge_errors` / `delete_errors` | ✔ | Require explicit confirmation |
 | `create_data_source` | ✔ | Registers a custom metric |
 | `update_data_source` | ✔ | Refuses to rename a referenceId that charts use unless forced |
 | `delete_data_source` | ✔ | Requires explicit confirmation; refuses while charts use it unless forced |
+
+## Daily error digest
+
+> **Note:** As of October 2026, FastStats rejects API keys on its error issue query endpoint ("User session required"), even though its API docs say keys are accepted. So `list_errors` fails with a message explaining this, while `get_error_filter_options` works. This needs a fix on FastStats' side; no key permission changes it.
+
+`list_errors` with `projects: "all"` and `newSince: "24h"` returns only the issues that first appeared, or came back after being resolved, in the last day, across every project your key can access. Add something like this to a scheduled task or your morning routine in Claude:
+
+> Check FastStats for errors that are new or regressed in the last 24 hours across all my projects. For each, give the project, error, first-seen version and how many servers hit it, and open the worst one with get_error to suggest a likely cause.
 
 ## How charts are described
 
