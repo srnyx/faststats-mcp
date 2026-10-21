@@ -10,7 +10,9 @@ A local stdio MCP server (TypeScript, Node 22+, `@modelcontextprotocol/sdk` + zo
 - `src/flow/compile.ts`: spec → flow. Node ids follow the UI convention `<type>-<output>-<step>`, edges `edge-<src>-<tgt>`. Formula inputs are `<type>-<output>-<input>-<step>`, and **edge order into a formula node defines A, B, C…**.
 - `src/flow/decompile.ts`: flow → spec. Any node that doesn't re-compile to identical data becomes a raw `{ node, data }` step, so round-trips are lossless.
 - `src/service.ts`: project/dashboard/marker-collection/data-source resolution (`resolveStoredDashboard` refuses the synthetic `default:<id>` dashboard for renames/deletes), `chartsUsing` (charts referencing a metric, used to guard data source renames/deletes), preview (compile errors → API preview → output-count check), grid placement.
-- `src/tools/index.ts`: all tool registrations. Write tools are skipped when `FASTSTATS_READ_ONLY`.
+- `src/tools/index.ts`: tool registrations (charts, dashboards, markers, data sources, health, downloads). Write tools are skipped when `FASTSTATS_READ_ONLY`.
+- `src/tools/errors.ts`: error-tracking tools. `list_errors` filters "new/regressed since" locally on `firstOccurred`/`lastOccurred`, so it stays correct even if the API's `from`/`to` units differ. Unverified: `from`/`to` are sent as Unix ms, and `{errorId}` path params take the issue's `errorId` field (not `id`).
+- `src/tools/util.ts`: shared `ok`/`fail`/`guard`/`projectArg`/`defined` helpers.
 - `src/resources/guide.md`: returned by `get_guide`. Keep it in sync with spec.ts.
 - `docs/FLOW_SCHEMA.md`: reverse-engineered schema notes and what's still unverified.
 - `manifest.json`: MCPB manifest. `user_config` (API key, default project, read-only) maps to the env vars read by `src/config.ts`. Its `version` and `tools` must match `package.json` and the registered tools (`test/manifest.test.ts`).

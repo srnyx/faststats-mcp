@@ -3,7 +3,8 @@ import type { Config } from "../config";
 import { log } from "../log";
 import {
   AnomalyReport, Chart, Dashboard, type DATA_SOURCE_TYPES, DataSource, DataSourceCoverage, DownloadAnalytics, DownloadProvider,
-  type DOWNLOAD_PROVIDERS, DownloadSearchHit, type Flow, type MARKER_GROUPINGS, type MARKER_VISIBILITIES, MarkerCollection,
+  type DOWNLOAD_PROVIDERS, DownloadSearchHit, ErrorBucket, ErrorFilterMeta, ErrorIssue, ErrorIssueDetail, ErrorLabel,
+  ErrorOccurrence, ErrorStackVariant, type ERROR_PRIORITIES, type ERROR_RESOLVE_MODES, type ERROR_STATUSES, type Flow, type MARKER_GROUPINGS, type MARKER_VISIBILITIES, MarkerCollection,
   MarkerEvent, type METRIC_SHAPES, PreviewResponse, ProjectPage, ProjectSummary, type Position, type QueryConfig, StructuredField,
 } from "./types";
 
@@ -79,6 +80,16 @@ export interface MarkerCollectionPatch {
 }
 
 type DownloadProviderName = (typeof DOWNLOAD_PROVIDERS)[number];
+
+export interface ErrorQuery {
+  /** Unix milliseconds (unverified: the spec only says "number"). */
+  from?: number;
+  to?: number;
+  limit?: number;
+  searchQuery?: string;
+  status?: (typeof ERROR_STATUSES)[number];
+  filters?: Array<{ field: string; operator: "equals" | "not_equals"; value: string }>;
+}
 
 export interface PreviewBody {
   chartType: string;
@@ -317,6 +328,81 @@ export class FastStatsClient {
       "DELETE",
       `${this.p(project)}/event-marker-collections/${encodeURIComponent(collectionId)}/events/${encodeURIComponent(eventId)}`,
     );
+  }
+
+  // ---------- error tracking ----------
+
+  /** Issues for one project, or across several when projectIds is given (POST /v0/errors/issues/query). */
+  queryErrorIssues(target: { project: string } | { projectIds: string[] }, body: ErrorQuery) {
+    return "project" in target
+      ? this.request("POST", `${this.p(target.project)}/errors/issues/query`, { body, schema: z.array(ErrorIssue) })
+      : this.request("POST", "/v0/errors/issues/query", { body: { ...body, projectIds: target.projectIds }, schema: z.array(ErrorIssue) });
+  }
+
+  queryErrorTimeseries(target: { project: string } | { projectIds: string[] }, body: ErrorQuery) {
+    return "project" in target
+      ? this.request("POST", `${this.p(target.project)}/errors/timeseries/query`, { body, schema: z.array(ErrorBucket) })
+      : this.request("POST", "/v0/errors/timeseries/query", { body: { ...body, projectIds: target.projectIds }, schema: z.array(ErrorBucket) });
+  }
+
+  getErrorIssue(project: string, errorId: string) {
+    return this.request("GET", `${this.p(project)}/errors/issues/${encodeURIComponent(errorId)}`, { schema: ErrorIssueDetail });
+  }
+
+  listErrorOccurrences(project: string, errorId: string, limit: number) {
+    return this.request("GET", `${this.p(project)}/errors/issues/${encodeURIComponent(errorId)}/occurrences`, {
+      query: { limit },
+      schema: z.array(ErrorOccurrence),
+    });
+  }
+
+  listErrorStackVariants(project: string, errorId: string, limit: number) {
+    return this.request("GET", `${this.p(project)}/errors/issues/${encodeURIComponent(errorId)}/stacktrace-variants`, {
+      query: { limit },
+      schema: z.array(ErrorStackVariant),
+    });
+  }
+
+  getErrorFilterMeta(project: string) {
+    return this.request("GET", `${this.p(project)}/errors/filters`, { schema: ErrorFilterMeta });
+  }
+
+  listErrorLabels(project: string) {
+    return this.request("GET", `${this.p(project)}/errors/labels`, { query: { includeCounts: true }, schema: z.array(ErrorLabel) });
+  }
+
+  updateErrorIssue(project: string, errorId: string, body: { priority?: (typeof ERROR_PRIORITIES)[number] | null; assigneeId?: string | null }) {
+    return this.request<void>("PATCH", `${this.p(project)}/errors/issues/${encodeURIComponent(errorId)}`, { body });
+  }
+
+  setErrorLabels(project: string, errorId: string, labelIds: string[]) {
+    return this.request<void>("PUT", `${this.p(project)}/errors/issues/${encodeURIComponent(errorId)}/labels`, { body: { labelIds } });
+  }
+
+  resolveErrors(projectId: string, errorIds: string[], mode: (typeof ERROR_RESOLVE_MODES)[number], note?: string) {
+    return this.request<void>("POST", "/v0/errors/resolve", { body: { projects: [{ projectId, errorIds }], mode, note } });
+  }
+
+  reopenErrors(project: string, errorIds: string[]) {
+    return this.request<void>("POST", `${this.p(project)}/errors/resolutions/clear`, { body: { errorIds } });
+  }
+
+  markErrorsViewed(project: string, ids: string[]) {
+    return this.request<void>("POST", `${this.p(project)}/errors/issues/viewed`, { body: { ids } });
+  }
+
+  mergeErrors(project: string, primaryErrorId: string, mergedErrorIds: string[]) {
+    return this.request("POST", `${this.p(project)}/errors/issues/merge`, {
+      body: { primaryErrorId, mergedErrorIds },
+      schema: z.looseObject({ primaryErrorId: z.string() }),
+    });
+  }
+
+  deleteErrors(project: string, ids: string[]) {
+    return this.request("POST", `${this.p(project)}/errors/issues/delete`, {
+      body: { ids },
+      schema: z.looseObject({ ids: z.array(z.string()), pending: z.boolean().nullish() }),
+    });
   }
 
   // ---------- health ----------

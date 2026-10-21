@@ -2,7 +2,7 @@
 // server hard-codes with the live FastStats OpenAPI spec, so API drift shows
 // up as a failing test instead of a confusing tool error.
 import { describe, expect, it } from "vitest";
-import { CHART_TYPES, DATA_SOURCE_TYPES, DOWNLOAD_PROVIDERS, MARKER_GROUPINGS, MARKER_VISIBILITIES, METRIC_SHAPES, VisualOptions } from "../src/api/types";
+import { CHART_TYPES, DATA_SOURCE_TYPES, DOWNLOAD_PROVIDERS, ERROR_PRIORITIES, ERROR_RESOLVE_MODES, ERROR_STATUSES, MARKER_GROUPINGS, MARKER_VISIBILITIES, METRIC_SHAPES, VisualOptions } from "../src/api/types";
 
 type Schema = { anyOf?: Schema[]; enum?: string[]; properties?: Record<string, Schema>; $ref?: string };
 
@@ -64,6 +64,32 @@ describe("FastStats OpenAPI contract", async () => {
       ["/v0/projects/{idOrSlug}/check-data", "get"],
       ["/v0/projects/{idOrSlug}/downloads", "get"],
       ["/v0/projects/{idOrSlug}/download-providers/search", "get"],
+    ] as const) expect(spec.paths[path]?.[method], `${method} ${path}`).toBeDefined();
+  });
+
+  it("error tracking enums match", () => {
+    const q = spec.paths["/v0/errors/issues/query"]?.post?.requestBody?.content["application/json"]?.schema;
+    expect([...(unwrap(q?.properties?.status)?.enum ?? [])].sort()).toEqual([...ERROR_STATUSES].sort());
+    const meta = spec.paths["/v0/projects/{idOrSlug}/errors/issues/{errorId}"]?.patch?.requestBody?.content["application/json"]?.schema;
+    expect([...(unwrap(meta?.properties?.priority)?.enum ?? [])].sort()).toEqual([...ERROR_PRIORITIES].sort());
+    const resolve = spec.paths["/v0/errors/resolve"]?.post?.requestBody?.content["application/json"]?.schema;
+    expect([...(unwrap(resolve?.properties?.mode)?.enum ?? [])].sort()).toEqual([...ERROR_RESOLVE_MODES].sort());
+  });
+
+  it("error tracking endpoints still exist", () => {
+    for (const [path, method] of [
+      ["/v0/projects/{idOrSlug}/errors/issues/query", "post"],
+      ["/v0/errors/timeseries/query", "post"],
+      ["/v0/projects/{idOrSlug}/errors/timeseries/query", "post"],
+      ["/v0/projects/{idOrSlug}/errors/issues/{errorId}/occurrences", "get"],
+      ["/v0/projects/{idOrSlug}/errors/issues/{errorId}/stacktrace-variants", "get"],
+      ["/v0/projects/{idOrSlug}/errors/issues/{errorId}/labels", "put"],
+      ["/v0/projects/{idOrSlug}/errors/filters", "get"],
+      ["/v0/projects/{idOrSlug}/errors/labels", "get"],
+      ["/v0/projects/{idOrSlug}/errors/resolutions/clear", "post"],
+      ["/v0/projects/{idOrSlug}/errors/issues/viewed", "post"],
+      ["/v0/projects/{idOrSlug}/errors/issues/merge", "post"],
+      ["/v0/projects/{idOrSlug}/errors/issues/delete", "post"],
     ] as const) expect(spec.paths[path]?.[method], `${method} ${path}`).toBeDefined();
   });
 

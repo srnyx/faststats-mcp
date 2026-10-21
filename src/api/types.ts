@@ -293,3 +293,61 @@ export const DownloadAnalytics = z.looseObject({
   versions: z.array(z.looseObject({ provider: z.string(), versionNumber: z.string(), downloads: num, releaseDate: z.string().nullish() })),
 });
 export type DownloadAnalytics = z.infer<typeof DownloadAnalytics>;
+
+export const ERROR_STATUSES = ["active", "resolved", "all"] as const;
+export const ERROR_PRIORITIES = ["critical", "high", "medium", "low"] as const;
+export const ERROR_RESOLVE_MODES = ["once", "version", "version_and_prior", "forever"] as const;
+
+export const ErrorLabel = z.looseObject({ id: z.string(), name: z.string(), color: z.string().optional(), issueCount: num.nullish() });
+export type ErrorLabel = z.infer<typeof ErrorLabel>;
+
+export const ErrorIssue = z.looseObject({
+  id: z.string(),
+  projectId: z.string(),
+  errorId: z.string(),
+  errorName: z.string(),
+  errorMessage: z.string(),
+  language: z.string().nullish(),
+  latestStack: z.array(z.string()).optional(),
+  mappedLatestStack: z.array(z.string()).optional(),
+  occurrenceCount: num,
+  affectedSessionCount: num.optional(),
+  firstOccurred: z.string(),
+  lastOccurred: z.string(),
+  pluginVersion: z.string().nullish(),
+  firstPluginVersion: z.string().nullish(),
+  affectedVersions: z.array(z.string()).optional(),
+  viewed: z.boolean().optional(),
+  status: z.string().optional(),
+  regressed: z.boolean().optional(),
+  priority: z.string().nullish(),
+  assigneeId: z.string().nullish(),
+  assigneeName: z.string().nullish(),
+  labels: z.array(ErrorLabel).optional(),
+  commentCount: num.optional(),
+  resolution: z.looseObject({ mode: z.string(), resolvedAt: z.string().optional(), note: z.string().nullish() }).nullish(),
+});
+export type ErrorIssue = z.infer<typeof ErrorIssue>;
+
+export const ErrorBucket = z.looseObject({ date: z.string(), errors: num, uniqueErrors: num.optional(), bucketStart: z.string().optional() });
+
+export const ErrorIssueDetail = z.looseObject({
+  issue: ErrorIssue,
+  timeline: z.array(ErrorBucket).optional(),
+});
+
+export const ErrorOccurrence = z.looseObject({
+  id: z.string(),
+  createdAt: z.string(),
+  latestStack: z.array(z.string()).optional(),
+  mappedStack: z.array(z.string()).optional(),
+  context: z.unknown().optional(),
+});
+
+export const ErrorStackVariant = z.looseObject({
+  id: z.string(),
+  stack: z.array(z.string()),
+  occurrenceCount: num,
+});
+
+export const ErrorFilterMeta = z.record(z.string(), z.array(z.string()).nullish());
