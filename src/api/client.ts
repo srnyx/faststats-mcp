@@ -460,7 +460,10 @@ function toError(status: number, text: string, method: string, path: string): Fa
   }
   const hint =
     status === 401 ? " (check FASTSTATS_API_KEY)" :
-    status === 403 ? " (the API key lacks access to this project)" :
+    status === 403
+      ? /session/i.test(message)
+        ? " (FastStats only allows this endpoint for a logged-in user, not an API key, so the key's permissions can't fix it)"
+        : " (the API key lacks access to this project)" :
     status === 409 ? " (someone changed this chart since it was read; fetch it again)" : "";
   return new FastStatsError(status, `FastStats ${method} ${path} failed with ${status}${tag ? ` ${tag}` : ""}: ${message}${hint}`, tag);
 }

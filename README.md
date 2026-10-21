@@ -68,6 +68,8 @@ Change them any time under **Settings → Extensions → FastStats**.
 
 ## Daily error digest
 
+> **Note:** As of October 2026, FastStats rejects API keys on its error issue query endpoint ("User session required"), even though its API docs say keys are accepted. So `list_errors` fails with a message explaining this, while `get_error_filter_options` works. This needs a fix on FastStats' side; no key permission changes it.
+
 `list_errors` with `projects: "all"` and `newSince: "24h"` returns only the issues that first appeared, or came back after being resolved, in the last day, across every project your key can access. Add something like this to a scheduled task or your morning routine in Claude:
 
 > Check FastStats for errors that are new or regressed in the last 24 hours across all my projects. For each, give the project, error, first-seen version and how many servers hit it, and open the worst one with get_error to suggest a likely cause.

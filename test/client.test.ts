@@ -33,6 +33,16 @@ describe("FastStatsClient", () => {
     await expect(client(f as never).listDashboards("p")).rejects.toThrow(/FASTSTATS_API_KEY/);
   });
 
+  it("tells session-only 403s apart from missing key access", async () => {
+    const session = vi.fn(async () => json(403, { _tag: "ForbiddenError", message: "User session required" }));
+    const err = (await client(session as never).listDashboards("p").catch((e: unknown) => e)) as Error;
+    expect(err.message).toMatch(/logged-in user, not an API key/);
+    expect(err.message).not.toMatch(/lacks access/);
+
+    const denied = vi.fn(async () => json(403, { _tag: "ForbiddenError", message: "Forbidden" }));
+    await expect(client(denied as never).listDashboards("p")).rejects.toThrow(/lacks access to this project/);
+  });
+
   it("handles 204 responses", async () => {
     const f = vi.fn(async () => new Response(null, { status: 204 }));
     await expect(client(f as never).deleteChart("p", "c")).resolves.toBeUndefined();
